@@ -114,12 +114,14 @@ namespace Haukcode.ArtNet.Sockets
                         receiveState.DataLength = EndReceiveMessageFrom(state, ref socketFlags, ref remoteEndPoint, out var ipPacketInfo);
 
                         //Protect against UDP loopback where we receive our own packets.
-                        if (!LocalEndPoint.Equals(remoteEndPoint) && receiveState.Valid)
+                        var lep = LocalEndPoint as IPEndPoint;
+                        var isLoopBackAddress = lep.Address.Equals(IPAddress.Loopback);
+                        if ((!isLoopBackAddress && lep.Equals(remoteEndPoint)) || !receiveState.Valid)
                         {
-                            LastPacket = DateTime.Now;
-
-                            ProcessPacket((IPEndPoint)remoteEndPoint, new IPEndPoint(ipPacketInfo.Address, ((IPEndPoint)LocalEndPoint).Port), ArtNetPacket.Create(receiveState, CustomPacketCreator));
+                            return;
                         }
+                        LastPacket = DateTime.Now;
+                        ProcessPacket((IPEndPoint) remoteEndPoint, new IPEndPoint(ipPacketInfo.Address, ((IPEndPoint) this.LocalEndPoint).Port), ArtNetPacket.Create(receiveState, this.CustomPacketCreator));
                     }
                 }
                 catch (Exception ex)
